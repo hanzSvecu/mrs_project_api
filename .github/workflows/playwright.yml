@@ -25,7 +25,10 @@ jobs:
         fetch-depth: 1
         persist-credentials: false
     - name: Start the server
-      run: npm install && npm start &
+      run: |
+        npm install
+        npm start &
+        npx wait-on http://localhost:8080
     - name: Run Playwright tests
       run: npx playwright test
     - uses: actions/upload-artifact@v4
