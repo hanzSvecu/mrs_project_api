@@ -43,142 +43,147 @@ const neg_cmp_icmp_del_taskId = [
   { name: 'valid format but non-existing id', id: 'abcdefghijklmnopqrstu', expectedStatus: 422 },
 ];
 
-test.describe('POST /tasks - negative validation', () => {
-  for (const testCase of invalidTextCases) {
-    test(`returns RC ${testCase.expectedStatus} for invalid text: ${testCase.name}`, async ({ request }) => {
-      const data =
-        testCase.value === undefined
-          ? {}
-          : { text: testCase.value };
-        console.log('data=' + JSON.stringify(data));
-        console.log('data=' + JSON.stringify(testCase.value));
-        const response = await request.post(`${baseURL}/tasks`, { data });
-        expect(response.status(),`Expected status ${testCase.expectedStatus} but got ${response.status()}`)
-        .toBe(testCase.expectedStatus);
-      });
-  }
-});
-
-test.describe('POST /tasks/{id} - invalid body', () => {
-  for (const testCase of invalidTextCases) {
-    test(`returns RC ${testCase.expectedStatus} for invalid update text: ${testCase.name}`, async ({ request }) => {
-      const task = await createTask(request, `Update negative ${Date.now()}`);
-
-      try {
+test.describe('Tasks API', { tag: ['@negative'] }, () => {
+    test.describe('POST /tasks - negative validation', () => {
+    for (const testCase of invalidTextCases) {
+        test(`returns RC ${testCase.expectedStatus} for invalid text: ${testCase.name}`, async ({ request }) => {
         const data =
-          testCase.value === undefined
+            testCase.value === undefined
             ? {}
             : { text: testCase.value };
+            console.log('data=' + JSON.stringify(data));
+            console.log('data=' + JSON.stringify(testCase.value));
+            const response = await request.post(`${baseURL}/tasks`, { data });
+            expect(response.status(),`Expected status ${testCase.expectedStatus} but got ${response.status()}`)
+            .toBe(testCase.expectedStatus);
+        });
+    }
+    });
 
-        const response = await request.post(`${baseURL}/tasks/${task.id}`, { data });
+    test.describe('POST /tasks/{id} - invalid body', () => {
+        for (const testCase of invalidTextCases) {
+            test(`returns RC ${testCase.expectedStatus} for invalid update text: ${testCase.name}`, async ({ request }) => {
+            const task = await createTask(request, `Update negative ${Date.now()}`);
+
+            try {
+                const data =
+                testCase.value === undefined
+                    ? {}
+                    : { text: testCase.value };
+
+                const response = await request.post(`${baseURL}/tasks/${task.id}`, { data });
+
+                expect(response.status(),`Expected status ${testCase.expectedStatus} but got ${response.status()}`)
+                .toBe(testCase.expectedStatus);
+            } finally {
+                await deleteTask(request, task.id);
+            }
+            });
+        }
+    });
+
+    test.describe('POST /tasks/{id} - invalid URL id', () => {
+    for (const testCase of invalidIdCases_taskId) {
+        test(`returns RC ${testCase.expectedStatus} for invalid id: ${testCase.name}`, async ({ request }) => {
+        const response = await request.post(`${baseURL}/tasks/${testCase.id}`, {
+            data: { text: `Correct text - ${testCase.name}` },
+        });
 
         expect(response.status(),`Expected status ${testCase.expectedStatus} but got ${response.status()}`)
         .toBe(testCase.expectedStatus);
-      } finally {
-        await deleteTask(request, task.id);
-      }
+        });
+    }
     });
-  }
-});
 
-test.describe('POST /tasks/{id} - invalid URL id', () => {
-  for (const testCase of invalidIdCases_taskId) {
-    test(`returns RC ${testCase.expectedStatus} for invalid id: ${testCase.name}`, async ({ request }) => {
-      const response = await request.post(`${baseURL}/tasks/${testCase.id}`, {
-        data: { text: `Correct text - ${testCase.name}` },
-      });
+    test.describe('POST /tasks/{id}/complete - invalid id', () => {
+        for (const testCase of neg_cmp_icmp_del_taskId.filter(testCase => testCase.id !== '')) {
+            test(`returns RC ${testCase.expectedStatus} for invalid id: ${testCase.name}`, async ({ request }) => {
+                const response = await request.post(`${baseURL}/tasks/${testCase.id}/complete`);
 
-      expect(response.status(),`Expected status ${testCase.expectedStatus} but got ${response.status()}`)
-      .toBe(testCase.expectedStatus);
+                expect(response.status(),`Expected status ${testCase.expectedStatus} but got ${response.status()}`)
+                .toBe(testCase.expectedStatus);
+                }
+            );
+        }
     });
-  }
-});
 
-test.describe('POST /tasks/{id}/complete - invalid id', () => {
-  for (const testCase of neg_cmp_icmp_del_taskId.filter(testCase => testCase.id !== '')) {
-    test(`returns RC ${testCase.expectedStatus} for invalid id: ${testCase.name}`, async ({ request }) => {
-      const response = await request.post(`${baseURL}/tasks/${testCase.id}/complete`);
+    test.describe('POST /tasks/{id}/incomplete - invalid id', () => {
+        for (const testCase of neg_cmp_icmp_del_taskId.filter(testCase => testCase.id !== '')) {
+            test(`returns RC ${testCase.expectedStatus} for invalid id: ${testCase.name}`, async ({ request }) => {
+                const response = await request.post(`${baseURL}/tasks/${testCase.id}/incomplete`);
 
-      expect(response.status(),`Expected status ${testCase.expectedStatus} but got ${response.status()}`)
-      .toBe(testCase.expectedStatus);
+                expect(response.status(),`Expected status ${testCase.expectedStatus} but got ${response.status()}`)
+                .toBe(testCase.expectedStatus);
+            });
+        }
     });
-  }
-});
 
-test.describe('POST /tasks/{id}/incomplete - invalid id', () => {
-  for (const testCase of neg_cmp_icmp_del_taskId.filter(testCase => testCase.id !== '')) {
-    test(`returns RC ${testCase.expectedStatus} for invalid id: ${testCase.name}`, async ({ request }) => {
-      const response = await request.post(`${baseURL}/tasks/${testCase.id}/complete`);
+    // validate expected business behavior: 
+    // completed task should remain completed and should have original completedDate after second completion attempt
+    test('POST /tasks/{id}/complete on already completed task keeps task completed', 
+        { tag: ['@business'] }, async ({ request }) => {
+        const task = await createTask(request, `Already completed ${Date.now()}`);
+        const completeResponse = `${baseURL}/tasks/${task.id}/complete`;
+        try {
+            const firstResponse = await request.post(completeResponse);
+            expect(firstResponse.status()).toBe(200);
 
-      expect(response.status(),`Expected status ${testCase.expectedStatus} but got ${response.status()}`)
-      .toBe(testCase.expectedStatus);
+            const firstBody = await firstResponse.json();
+
+            const secondResponse = await request.post(completeResponse);
+            expect(secondResponse.status()).toBe(200);
+
+            const secondBody = await secondResponse.json();
+
+            expect(secondBody.completed, `Expected completed to be true but got ${secondBody.completed}`)
+            .toBe(true);
+            expect(secondBody.id, `Expected id to be ${task.id} but got ${secondBody.id}`)
+            .toBe(task.id);
+
+            // Expected business behavior:
+            expect(secondBody.completedDate, 
+                `Expected completedDate to be ${firstBody.completedDate} but got ${secondBody.completedDate} 
+                on second completion attempt while calling POST on ${completeResponse}`)
+                .toBe(firstBody.completedDate);
+        } finally {
+            await deleteTask(request, task.id);
+        }
     });
-  }
-});
 
-// validate expected business behavior: 
-// completed task should remain completed and should have original completedDate after second completion attempt
-test('POST /tasks/{id}/complete on already completed task keeps task completed', async ({ request }) => {
-  const task = await createTask(request, `Already completed ${Date.now()}`);
-  const completeResponse = `${baseURL}/tasks/${task.id}/complete`;
-  try {
-    const firstResponse = await request.post(completeResponse);
-    expect(firstResponse.status()).toBe(200);
+    // validate expected business behavior: 
+    // incompleted task should remain incompleted and should not have completedDate after any incompletion attempt
+    test('POST /tasks/{id}/incomplete on already incomplete task keeps task incomplete and without completedDate', 
+        { tag: ['@business'] }, async ({ request }) => {
+        const task = await createTask(request, `Already incomplete ${Date.now()}`);
 
-    const firstBody = await firstResponse.json();
+        try {
+            const response = await request.post(`${baseURL}/tasks/${task.id}/incomplete`);
 
-    const secondResponse = await request.post(completeResponse);
-    expect(secondResponse.status()).toBe(200);
+            expect(response.status()).toBe(200);
 
-    const secondBody = await secondResponse.json();
+            const body = await response.json();
 
-    expect(secondBody.completed, `Expected completed to be true but got ${secondBody.completed}`)
-    .toBe(true);
-    expect(secondBody.id, `Expected id to be ${task.id} but got ${secondBody.id}`)
-    .toBe(task.id);
-
-    // Expected business behavior:
-    expect(secondBody.completedDate, 
-        `Expected completedDate to be ${firstBody.completedDate} but got ${secondBody.completedDate} 
-        on second completion attempt while calling POST on ${completeResponse}`)
-        .toBe(firstBody.completedDate);
-  } finally {
-    await deleteTask(request, task.id);
-  }
-});
-
-// validate expected business behavior: 
-// incompleted task should remain incompleted and should not have completedDate after any incompletion attempt
-test('POST /tasks/{id}/incomplete on already incomplete task keeps task incomplete and without completedDate', async ({ request }) => {
-  const task = await createTask(request, `Already incomplete ${Date.now()}`);
-
-  try {
-    const response = await request.post(`${baseURL}/tasks/${task.id}/incomplete`);
-
-    expect(response.status()).toBe(200);
-
-    const body = await response.json();
-
-    expect(body.id, `Expected id to be ${task.id} but got ${body.id}`)
-    .toBe(task.id);
-    expect(body.completed, `Expected completed to be false but got ${body.completed}`)
-    .toBe(false);
-    expect(body.completedDate, `Expected completedDate to not be present but got ${body.completedDate}`)
-    .toBeFalsy();
-  } finally {
-    await deleteTask(request, task.id);
-  }
-});
-
-test.describe('DELETE /tasks/{id} - invalid id', () => {
-  for (const testCase of neg_cmp_icmp_del_taskId) {
-    test(`returns expected status for invalid id: ${testCase.name}`, async ({ request }) => {
-      const requestURL = `${baseURL}/tasks/${testCase.id}`;
-      const response = await request.delete(requestURL);
-
-      expect(response.status(), 
-      `Expected status ${testCase.expectedStatus} but got ${response.status()} while calling DELETE on ${requestURL}`)
-      .toBe(testCase.expectedStatus);
+            expect(body.id, `Expected id to be ${task.id} but got ${body.id}`)
+            .toBe(task.id);
+            expect(body.completed, `Expected completed to be false but got ${body.completed}`)
+            .toBe(false);
+            expect(body.completedDate, `Expected completedDate to not be present but got ${body.completedDate}`)
+            .toBeFalsy();
+        } finally {
+            await deleteTask(request, task.id);
+        }
     });
-  }
+
+    test.describe('DELETE /tasks/{id} - invalid id', () => {
+        for (const testCase of neg_cmp_icmp_del_taskId) {
+            test(`returns expected status for invalid id: ${testCase.name}`, async ({ request }) => {
+            const requestURL = `${baseURL}/tasks/${testCase.id}`;
+            const response = await request.delete(requestURL);
+
+            expect(response.status(), 
+            `Expected status ${testCase.expectedStatus} but got ${response.status()} while calling DELETE on ${requestURL}`)
+            .toBe(testCase.expectedStatus);
+            });
+        }
+    });
 });

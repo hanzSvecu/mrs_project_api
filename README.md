@@ -44,6 +44,13 @@ npx playwright test --grep-invert "@smoke"
 ```bash
 npx playwright test 
 ```
+## Test results summary
+While overall functionality seems to work correctly, following issues were identified:
+### 1. Wrong contract definition
+Majority failed `@negative` scenarios fails on Missing RC 404 in swagger. As I consider it as a contract and RC 404 is reasonable, I would fix it there rather in the application.
+### 2. Business logic for complete request run on complete
+While task remains completed, the completedDate changes. That doesn't make sense from business logic - original completedDate should remain. Can be run by tag `@business`.
+
 ## Workflows
 **Worflows are currently not working - TBD if time permits**
 ### CI/CD Pipeline

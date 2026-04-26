@@ -21,7 +21,7 @@ function verifyTaskContent(task: Task, expectedText: string, completed: boolean 
 }
 
 
-test.describe('Tasks API', () => {
+test.describe('Tasks API', { tag: ['@positive'] }, () => {
 
   test('@smoke POST /tasks and GET /tasks', async ({ request }) => {
     const taskName = 'Smoke task';
