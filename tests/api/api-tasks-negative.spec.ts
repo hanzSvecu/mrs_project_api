@@ -1,8 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { createTask, deleteTask } from '../../src/api/tasks.api';
 
-const baseURL = 'http://localhost:8080';
-
 const invalidTextCases = [
   { name: 'empty string', value: '', expectedStatus: 422 },
   { name: 'null', value: null, expectedStatus: 422 },
@@ -53,7 +51,7 @@ test.describe('Tasks API', { tag: ['@negative'] }, () => {
             : { text: testCase.value };
             console.log('data=' + JSON.stringify(data));
             console.log('data=' + JSON.stringify(testCase.value));
-            const response = await request.post(`${baseURL}/tasks`, { data });
+            const response = await request.post('/tasks', { data });
             expect(response.status(),`Expected status ${testCase.expectedStatus} but got ${response.status()}`)
             .toBe(testCase.expectedStatus);
         });
@@ -71,7 +69,7 @@ test.describe('Tasks API', { tag: ['@negative'] }, () => {
                     ? {}
                     : { text: testCase.value };
 
-                const response = await request.post(`${baseURL}/tasks/${task.id}`, { data });
+                const response = await request.post(`/tasks/${task.id}`, { data });
 
                 expect(response.status(),`Expected status ${testCase.expectedStatus} but got ${response.status()}`)
                 .toBe(testCase.expectedStatus);
@@ -85,7 +83,7 @@ test.describe('Tasks API', { tag: ['@negative'] }, () => {
     test.describe('POST /tasks/{id} - invalid URL id', () => {
     for (const testCase of invalidIdCases_taskId) {
         test(`returns RC ${testCase.expectedStatus} for invalid id: ${testCase.name}`, async ({ request }) => {
-        const response = await request.post(`${baseURL}/tasks/${testCase.id}`, {
+        const response = await request.post(`/tasks/${testCase.id}`, {
             data: { text: `Correct text - ${testCase.name}` },
         });
 
@@ -98,7 +96,7 @@ test.describe('Tasks API', { tag: ['@negative'] }, () => {
     test.describe('POST /tasks/{id}/complete - invalid id', () => {
         for (const testCase of neg_cmp_icmp_del_taskId.filter(testCase => testCase.id !== '')) {
             test(`returns RC ${testCase.expectedStatus} for invalid id: ${testCase.name}`, async ({ request }) => {
-                const response = await request.post(`${baseURL}/tasks/${testCase.id}/complete`);
+                const response = await request.post(`/tasks/${testCase.id}/complete`);
 
                 expect(response.status(),`Expected status ${testCase.expectedStatus} but got ${response.status()}`)
                 .toBe(testCase.expectedStatus);
@@ -110,7 +108,7 @@ test.describe('Tasks API', { tag: ['@negative'] }, () => {
     test.describe('POST /tasks/{id}/incomplete - invalid id', () => {
         for (const testCase of neg_cmp_icmp_del_taskId.filter(testCase => testCase.id !== '')) {
             test(`returns RC ${testCase.expectedStatus} for invalid id: ${testCase.name}`, async ({ request }) => {
-                const response = await request.post(`${baseURL}/tasks/${testCase.id}/incomplete`);
+                const response = await request.post(`/tasks/${testCase.id}/incomplete`);
 
                 expect(response.status(),`Expected status ${testCase.expectedStatus} but got ${response.status()}`)
                 .toBe(testCase.expectedStatus);
@@ -123,7 +121,7 @@ test.describe('Tasks API', { tag: ['@negative'] }, () => {
     test('POST /tasks/{id}/complete on already completed task keeps task completed', 
         { tag: ['@business'] }, async ({ request }) => {
         const task = await createTask(request, `Already completed ${Date.now()}`);
-        const completeResponse = `${baseURL}/tasks/${task.id}/complete`;
+        const completeResponse = `/tasks/${task.id}/complete`;
         try {
             const firstResponse = await request.post(completeResponse);
             expect(firstResponse.status()).toBe(200);
@@ -157,7 +155,7 @@ test.describe('Tasks API', { tag: ['@negative'] }, () => {
         const task = await createTask(request, `Already incomplete ${Date.now()}`);
 
         try {
-            const response = await request.post(`${baseURL}/tasks/${task.id}/incomplete`);
+            const response = await request.post(`/tasks/${task.id}/incomplete`);
 
             expect(response.status()).toBe(200);
 
@@ -177,7 +175,7 @@ test.describe('Tasks API', { tag: ['@negative'] }, () => {
     test.describe('DELETE /tasks/{id} - invalid id', () => {
         for (const testCase of neg_cmp_icmp_del_taskId) {
             test(`returns expected status for invalid id: ${testCase.name}`, async ({ request }) => {
-            const requestURL = `${baseURL}/tasks/${testCase.id}`;
+            const requestURL = `/tasks/${testCase.id}`;
             const response = await request.delete(requestURL);
 
             expect(response.status(), 

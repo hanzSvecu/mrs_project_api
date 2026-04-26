@@ -38,7 +38,7 @@ export default defineConfig({
       name: 'api',
       testMatch: /.*api.*\.spec\.ts/,
       use: {
-        baseURL: 'https://jsonplaceholder.typicode.com',
+        baseURL: process.env.BASE_URL || 'http://localhost:8080'
       },
     },
   ],

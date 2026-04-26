@@ -2,8 +2,6 @@ import { test, expect } from '@playwright/test';
 import type { Task } from '../../src/types/task';
 import { createTask, deleteTask } from '../../src/api/tasks.api';
 
-const baseURL = 'http://localhost:8080';
-
 function verifyTaskContent(task: Task, expectedText: string, completed: boolean = false) {
   expect(task).toHaveProperty('id');
   expect(task).toHaveProperty('text');
@@ -28,7 +26,7 @@ test.describe('Tasks API', { tag: ['@positive'] }, () => {
     const createdTask = await createTask(request, taskName);
 
     try {
-      const response = await request.get(`${baseURL}/tasks`);
+      const response = await request.get('/tasks');
       expect(response.status()).toBe(200);
 
       const tasks: Task[] = await response.json();
@@ -57,7 +55,7 @@ test.describe('Tasks API', { tag: ['@positive'] }, () => {
   test('POST /tasks/{id}/complete - set task as completed', async ({ request }) => {
     const task = await createTask(request, 'Task to complete');
 
-    const completeResponse = await request.post(`${baseURL}/tasks/${task.id}/complete`);
+    const completeResponse = await request.post(`/tasks/${task.id}/complete`);
     expect(completeResponse.status()).toBe(200);
 
     const completedTask: Task = await completeResponse.json();
@@ -71,9 +69,9 @@ test.describe('Tasks API', { tag: ['@positive'] }, () => {
   test('POST /tasks/{id}/incomplete - set task as incomplete', async ({ request }) => {
     const task = await createTask(request, 'Task to incomplete');
 
-    await request.post(`${baseURL}/tasks/${task.id}/complete`);
+    await request.post(`/tasks/${task.id}/complete`);
 
-    const incompleteResponse = await request.post(`${baseURL}/tasks/${task.id}/incomplete`);
+    const incompleteResponse = await request.post(`/tasks/${task.id}/incomplete`);
     expect(incompleteResponse.status()).toBe(200);
 
     const incompleteTask: Task = await incompleteResponse.json();
@@ -85,7 +83,7 @@ test.describe('Tasks API', { tag: ['@positive'] }, () => {
 
   // runs on default data set, as all other tests create and delete their own data
   test('GET /tasks/completed returns only completed tasks', async ({ request }) => {
-    const response = await request.get(`${baseURL}/tasks/completed`);
+    const response = await request.get('/tasks/completed');
     expect(response.status()).toBe(200);
 
     const tasks = await response.json();
