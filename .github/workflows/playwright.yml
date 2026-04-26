@@ -1,4 +1,4 @@
-name: Playwright Tests
+name: API Tests
 on:
   push:
     branches: [ main, master ]
@@ -24,12 +24,15 @@ jobs:
         path: external-repo
         fetch-depth: 1
         persist-credentials: false
-    - name: Start the server
+    - name: Install backend dependencies
+      working-directory: external-repo
+      run: npm install
+    - name: Start backend server
+      working-directory: external-repo
       run: |
         pwd
         ls
         cat package.json
-        npm install
         npm start &
         npx wait-on http://localhost:8080/api-docs
     - name: Run API tests
