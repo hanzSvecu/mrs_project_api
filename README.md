@@ -16,7 +16,7 @@ As it was not mentioned that it is something that should be mocked (and meaningf
 Tests are located in the `tests/api` directory and cover:
 - API endpoint validation
 - Request/response handling
-- Error scenarios **TBD if time permits**
+- Error scenarios
 - Data validation
 
 ### Test Coverage

@@ -1,29 +1,8 @@
-import { test, expect, APIRequestContext } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import type { Task } from '../../src/types/task';
+import { createTask, deleteTask } from '../../src/api/tasks.api';
 
 const baseURL = 'http://localhost:8080';
-
-type Task = {
-  id: string;
-  text: string;
-  completed: boolean;
-  createdDate: number;
-  completedDate?: number;
-};
-
-async function createTask(request: APIRequestContext, taskName: string): Promise<Task> {
-  const response = await request.post(`${baseURL}/tasks`, {data: { text: `${taskName} ${Date.now()}` }});
-  
-  // According to the API documentation, the response should be 201 Created
-  expect(response.status()).toBe(200);
-  return await response.json();
-}
-
-async function deleteTask(request: APIRequestContext, id: string) {
-  const response = await request.delete(`${baseURL}/tasks/${id}`);
-  
-  // According to the API documentation, the response should be 200 OK or 204 No Content
-  expect(response.status()).toBe(200);
-}
 
 function verifyTaskContent(task: Task, expectedText: string, completed: boolean = false) {
   expect(task).toHaveProperty('id');
