@@ -26,10 +26,13 @@ jobs:
         persist-credentials: false
     - name: Start the server
       run: |
+        pwd
+        ls
+        cat package.json
         npm install
         npm start &
-        npx wait-on http://localhost:8080
-    - name: Run Playwright tests
+        npx wait-on http://localhost:8080/api-docs
+    - name: Run API tests
       run: npx playwright test
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
